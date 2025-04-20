@@ -93,11 +93,11 @@ class Optimizer
 
         if (!file_exists($path)) return;
         if (!data_get($this->settings, 'webp')) return;
-        if (!in_array($mime, ['image/jpeg', 'image/gif', 'image/png'])) return;
+        if (!in_array($mime, ['image/jpeg', 'image/jpg', 'image/png'])) return;
 
         $image = match ($mime) {
-            'image/jpeg' => imagecreatefromjpeg($path),
-            'image/gif' => imagecreatefromgif($path),
+            'image/jpeg', 'image/jpg' => imagecreatefromjpeg($path),
+            // 'image/gif' => imagecreatefromgif($path),
             'image/png' => @imagecreatefrompng($path),
         };
 

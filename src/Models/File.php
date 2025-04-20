@@ -452,20 +452,21 @@ class File extends Model
     {
         if (!$this->is_image) return $this;
 
-        $optimized = rescue(fn () => (new Optimizer($this->endpoint))->settings($settings)->optimize(), null, false);
-        $isResized = str($optimized)->is('*--resized*');
-        $isConvertedToWebp = str($optimized)->is('*--webp*');
-        $extension = $isConvertedToWebp ? 'webp' : $this->extension;
-        $saveAs = head(explode('.', $this->filename)).self::OPTIMIZATION_SUFFIX.'.'.$extension;
-        $path = (string) str($this->path)->replace($this->filename, '')->replaceLast('/', '');
+        if ($optimized = rescue(fn () => (new Optimizer($this->endpoint))->settings($settings)->optimize(), null, false)) {
+            $isResized = str($optimized)->is('*--resized*');
+            $isConvertedToWebp = str($optimized)->is('*--webp*');
+            $extension = $isConvertedToWebp ? 'webp' : $this->extension;
+            $saveAs = head(explode('.', $this->filename)).self::OPTIMIZATION_SUFFIX.'.'.$extension;
+            $path = (string) str($this->path)->replace($this->filename, '')->replaceLast('/', '');
 
-        $this->getDisk()->putFileAs($path, $optimized, $saveAs, $this->visibility);
-        unlink($optimized);
+            $this->getDisk()->putFileAs($path, $optimized, $saveAs, $this->visibility);
+            unlink($optimized);
 
-        $this->fill([
-            'is_resized' => $isResized,
-            'is_converted_to_webp' => $isConvertedToWebp,
-        ])->save();
+            $this->fill([
+                'is_resized' => $isResized,
+                'is_converted_to_webp' => $isConvertedToWebp,
+            ])->save();
+        }
 
         return $this;
     }
