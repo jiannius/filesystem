@@ -76,6 +76,10 @@ class Optimizer
 
     public function resize()
     {
+        $mime = data_get($this->settings, 'mime');
+
+        if ($mime === 'image/gif') return;
+
         $width = data_get($this->settings, 'width');
         $height = data_get($this->settings, 'height');
         $output = data_get($this->settings, 'resized_output_path');
