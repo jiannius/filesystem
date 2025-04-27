@@ -17,6 +17,7 @@ class FilesystemServiceProvider extends ServiceProvider
     public function boot() : void
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'filesystem');
 
         // register commands
         $this->commands([
@@ -29,9 +30,7 @@ class FilesystemServiceProvider extends ServiceProvider
             if (extension_loaded('gd')) return new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\Gd\Driver());
         });
 
-        // just so we can use <filesystem:uploader/>
-        Blade::anonymousComponentPath(__DIR__.'/../components', 'filesystem');
-
+        // just so we can use <filesystem:component/>
         $compiler = new \Jiannius\Filesystem\Services\TagCompiler(
             app('blade.compiler')->getClassComponentAliases(),
             app('blade.compiler')->getClassComponentNamespaces(),
@@ -55,5 +54,12 @@ class FilesystemServiceProvider extends ServiceProvider
             'endpoint' => env('DO_SPACES_ENDPOINT'),
             'use_path_style_endpoint' => false,
         ]]);
+
+        // blade components
+        Blade::anonymousComponentPath(__DIR__.'/../components', 'filesystem');
+
+        // livewire components
+        \Livewire\Livewire::component('filesystem.edit', \Jiannius\Filesystem\Livewire\Edit::class);
+        \Livewire\Livewire::component('filesystem.manager', \Jiannius\Filesystem\Livewire\Manager::class);
     }
 }

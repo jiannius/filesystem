@@ -255,6 +255,11 @@ class File extends Model
         return true;
     }
 
+    public function isVisibilityEditable() : bool
+    {
+        return true;
+    }
+
     public function getEndpoint($noauth = false, $optimized = false)
     {
         if ($this->is_youtube) return Util::getYoutubeEmbedUrl($this->url);

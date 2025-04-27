@@ -6,6 +6,7 @@
         "doctrine/dbal": "^3.6",
         "intervention/image": "^3",
         "league/flysystem-aws-s3-v3": "^3.0",
+        "livewire/livewire": "^2.0",
         "symfony/http-client": "^6.0"
     },
     "require-dev": {
