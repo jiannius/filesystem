@@ -25,7 +25,6 @@ class File extends Model
     ];
 
     protected $appends = [
-        'icon',
         'size',
         'is_image',
         'is_video',
@@ -177,45 +176,32 @@ class File extends Model
         );
     }
 
-    // protected function type() : Attribute
-    // {
-    //     return Attribute::make(
-    //         get: function() {
-    //             $mime = str($this->mime);
-
-    //             if ($mime->is('image/*')) return (string) $mime->replace('image/', '');
-
-    //             return pick([
-    //                 'youtube' => $mime->is('youtube'),
-    //                 'jsonld' => $mime->is('*ld+json'),
-    //                 'svg' => $mime->is('*svg+xml'),
-    //                 'txt' => $mime->is('*plain'),
-    //                 'ms-word' => $mime->is('*msword') || $mime->is('*vnd.openxmlformats-officedocument.wordprocessingml.document'),
-    //                 'ms-ppt' => $mime->is('*vnd.ms-powerpoint') || $mime->is('*vnd.openxmlformats-officedocument.presentationml.presentation'),
-    //                 'ms-excel' => $mime->is('*vnd.ms-excel') || $mime->is('*vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
-    //                 'pdf' => $mime->is('*/pdf'),
-    //                 'video' => $mime->is('video/*'),
-    //                 'audio' => $mime->is('audio/*'),
-    //                 'file' => true,
-    //             ]);
-    //         },
-    //     );
-    // }
-
-    protected function icon() : Attribute
+    protected function type() : Attribute
     {
         return Attribute::make(
-            get: function () {
+            get: function() {
                 $mime = str($this->mime);
 
+                if ($mime->is('image/*')) return (string) $mime->replace('image/', '');
+
                 return match (true) {
-                    $this->is_image => 'image',
-                    $this->is_video => 'play',
-                    $this->is_audio => 'music',
-                    $mime->is('*msword') || $mime->is('*vnd.openxmlformats-officedocument.wordprocessingml.document') => 'file-word',
-                    $mime->is('*vnd.ms-powerpoint') || $mime->is('*vnd.openxmlformats-officedocument.presentationml.presentation') => 'file-powerpoint',
-                    $mime->is('*vnd.ms-excel') || $mime->is('*vnd.openxmlformats-officedocument.spreadsheetml.sheet') => 'file-excel',
-                    $mime->is('*/pdf') => 'file-pdf',
+                    $mime->is('youtube') => 'youtube',
+                    $mime->is('*ld+json') => 'jsonld',
+                    $mime->is('*svg+xml') => 'svg',
+                    $mime->is('*plain') => 'text',
+
+                    $mime->is('*msword')
+                    || $mime->is('*vnd.openxmlformats-officedocument.wordprocessingml.document') => 'word',
+
+                    $mime->is('*vnd.ms-powerpoint')
+                    || $mime->is('*vnd.openxmlformats-officedocument.presentationml.presentation') => 'ppt',
+
+                    $mime->is('*vnd.ms-excel')
+                    || $mime->is('*vnd.openxmlformats-officedocument.spreadsheetml.sheet') => 'excel',
+
+                    $mime->is('*/pdf') => 'pdf',
+                    $mime->is('video/*') => 'video',
+                    $mime->is('audio/*') => 'audio',
                     default => 'file',
                 };
             },

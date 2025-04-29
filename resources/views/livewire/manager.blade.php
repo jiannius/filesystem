@@ -42,7 +42,7 @@
                     <atom:cell :checkbox="$file->id"></atom:cell>
 
                     <atom:cell>
-                        <filesystem:card :file="$file"/>
+                        <filesystem:card :file="$file" inline/>
                     </atom:cell>
 
                     <atom:cell align="right">@e($file->size)</atom:cell>

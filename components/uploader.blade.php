@@ -134,7 +134,7 @@ x-data="{
 }"
 x-modelable="value"
 x-bind:class="loading && 'is-loading pointer-events-none'"
-{{ $attributes->class(['relative'])->except(['max', 'accept', 'multiple', 'visibility', 'optimization']) }}>
+{{ $attributes->class(['group/uploader relative'])->except(['max', 'accept', 'multiple', 'visibility', 'optimization']) }}>
     <div x-bind:class="loading && 'opacity-50'">
         <input 
         type="file"
@@ -155,7 +155,7 @@ x-bind:class="loading && 'is-loading pointer-events-none'"
         {{ $loading }}
     @else
         <div x-show="loading && progress" class="absolute bottom-2 right-2">
-            <div x-text="progress" class="bg-black rounded-md text-sm text-white px-2"></div>
+            <div x-text="progress" class="bg-black rounded text-sm text-white px-2"></div>
         </div>
     @endisset
 </div>

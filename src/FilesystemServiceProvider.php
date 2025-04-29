@@ -18,6 +18,7 @@ class FilesystemServiceProvider extends ServiceProvider
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'filesystem');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'filesystem');
 
         // register commands
         $this->commands([
