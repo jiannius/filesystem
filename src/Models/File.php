@@ -402,6 +402,7 @@ class File extends Model
         return $this->fill([
             'url' => $url,
             'path' => $path,
+            'visibility' => $visibility,
         ])->save();
     }
 
