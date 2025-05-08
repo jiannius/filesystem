@@ -11,6 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('files')) return;
+
         Schema::create('files', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->string('name');
