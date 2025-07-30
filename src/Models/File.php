@@ -4,6 +4,7 @@ namespace Jiannius\Filesystem\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
 use Jiannius\Filesystem\Services\Optimizer;
@@ -93,6 +94,9 @@ class File extends Model
 
     public const OPTIMIZATION_SUFFIX = '--o'; // suffix to be append to optimized image, eg: XXXXXX--o.jpg
 
+    /**
+     * The booted method for model
+     */
     protected static function booted() : void
     {
         static::saving(function ($file) {
@@ -105,6 +109,17 @@ class File extends Model
         });
     }
 
+    /**
+     * Get the user for file
+     */
+    public function user() : BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
+    }
+
+    /**
+     * The is_image attribute for file
+     */
     protected function isImage() : Attribute
     {
         return Attribute::make(
@@ -112,6 +127,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The is_video attribute for file
+     */
     protected function isVideo() : Attribute
     {
         return Attribute::make(
@@ -119,6 +137,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The is_audio attribute for file
+     */
     protected function isAudio() : Attribute
     {
         return Attribute::make(
@@ -126,6 +147,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The is_youtube attribute for file
+     */
     protected function isYoutube() : Attribute
     {
         return Attribute::make(
@@ -133,6 +157,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The is_file attribute for file
+     */
     protected function isFile() : Attribute
     {
         return Attribute::make(
@@ -140,7 +167,9 @@ class File extends Model
         );
     }
 
-    // return file size in 5.25KB
+    /**
+     * The size attribute for file
+     */
     protected function size() : Attribute
     {
         return Attribute::make(
@@ -148,6 +177,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The filename attribute for file
+     */
     protected function filename() : Attribute
     {
         return Attribute::make(
@@ -155,6 +187,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The storage_path attribute for file
+     */
     protected function storagePath() : Attribute
     {
         return Attribute::make(
@@ -162,6 +197,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The endpoint attribute for file
+     */
     protected function endpoint() : Attribute
     {
         return Attribute::make(
@@ -169,6 +207,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The endpoint_o attribute for file
+     */
     protected function endpointO() : Attribute
     {
         return Attribute::make(
@@ -176,6 +217,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The type attribute for file
+     */
     protected function type() : Attribute
     {
         return Attribute::make(
@@ -208,6 +252,9 @@ class File extends Model
         );
     }
 
+    /**
+     * The scope for search
+     */
     public function scopeSearch($query, $search) : void
     {
         $query->where('name', 'like', "%$search%");
@@ -273,7 +320,7 @@ class File extends Model
 
         if (!$endpoint) return null;
 
-        $ext = pathinfo($endpoint, PATHINFO_EXTENSION);
+        $ext = pathinfo(parse_url($endpoint, PHP_URL_PATH), PATHINFO_EXTENSION);
         $content = file_get_contents($endpoint);
 
         return 'data:image/'.$ext.';base64,'.base64_encode($content);
