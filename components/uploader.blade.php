@@ -1,4 +1,5 @@
 @php
+$model = $attributes->wire('model')->value();
 $config = [
     'max' => $attributes->get('max') ?? 5,
     'accept' => $attributes->get('accept'),
@@ -11,11 +12,7 @@ $config = [
 
 <div
 x-data="{
-    @if ($attributes->wire('model')->value())
-    value: @entangle($attributes->wire('model')),
-    @else
-    value: null,
-    @endif
+    model: @js($model),
     config: @js($config),
     jobs: [],
     loading: false,
@@ -27,18 +24,17 @@ x-data="{
         let validator = this.validate()
         
         if (validator.failed) {
-            this.toast({ title: 'Validation Error', message: validator.error, type: 'error' })
+            window.alert(validator.error)
         }
         else {
             this.loading = true
 
             this.upload()
                 .then(res => {
-                    this.value = res.id
+                    if (this.model) this.$wire.set(this.model, res.id)
                     this.$dispatch('uploaded', res.files)
-                    Livewire.emit('uploaded', res.files)
                 })
-                .catch(({ message }) => this.toast({ title: 'Unable to Upload', message, type: 'error' }))
+                .catch(({ message }) => window.alert(message))
                 .finally(() => {
                     this.jobs = []
                     this.loading = false
@@ -95,11 +91,6 @@ x-data="{
         this.progress = `${done}/${count}`
     },
 
-    toast (data) {
-        if (window.Atom) Atom.toast({ title: data.title, message: data.message }, data.type || 'info')
-        else window.alert(data.message)
-    },
-
     validate () {
         // scan for unsupported file type
         if (
@@ -132,7 +123,6 @@ x-data="{
         this.$refs.fileInput.click()
     },
 }"
-x-modelable="value"
 x-bind:class="loading && 'is-loading pointer-events-none'"
 {{ $attributes->class(['group/uploader relative'])->except(['max', 'accept', 'multiple', 'visibility', 'optimization']) }}>
     <div x-bind:class="loading && 'opacity-50'">
