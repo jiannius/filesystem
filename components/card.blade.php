@@ -1,23 +1,23 @@
 @use('Jiannius\Filesystem\Services\Util')
 
+@props([
+    'file' => null,
+    'inline' => false,
+])
+
 @php
-$file = $attributes->get('file');
-$inline = $attributes->get('inline');
+$name = data_get($file, 'name');
+$src = data_get($file, 'endpoint');
+$optimized = data_get($file, 'endpoint_o');
+$type = data_get($file, 'is_image') ? 'image' : data_get($file, 'type');
 $removeable = $attributes->has('wire:remove') || $attributes->has('x-on:remove');
-
-$name = get($file, 'name');
-$src = get($file, 'endpoint');
-$srcsm = get($file, 'endpoint_sm');
-$type = get($file, 'is_image') ? 'image' : get($file, 'type');
-
-$attrs = $attributes->except(['file', 'variant']);
 @endphp
 
 @if ($inline)
-    <div {{ $attrs->class(['flex gap-3']) }}>
+    <div {{ $attributes->class(['flex gap-3']) }}>
         <div class="shrink-0 size-10 rounded-lg bg-zinc-100 border shadow-sm flex items-center justify-center overflow-hidden">
             @if ($type === 'image')
-                <object data="{{ $srcsm }}" class="w-full h-full object-cover">
+                <object data="{{ $optimized }}" class="w-full h-full object-cover">
                     <img src="{{ $src }}" class="w-full h-full object-cover">
                 </object>
             @else
@@ -28,8 +28,8 @@ $attrs = $attributes->except(['file', 'variant']);
         </div>
 
         <div class="grow truncate">
-            <div class="font-medium truncate leading-tight">@ee($name)</div>
-            <div class="text-sm text-muted">@e($type)</div>
+            <div class="font-medium truncate leading-tight">{!! $name !!}</div>
+            <div class="text-sm text-muted">{!! $type !!}</div>
         </div>
 
         @if ($removeable)
@@ -43,7 +43,7 @@ $attrs = $attributes->except(['file', 'variant']);
         @endif
     </div>
 @else
-    <div {{ $attrs }}>
+    <div {{ $attributes }}>
         <div class="group w-full relative pt-[100%]">
             <div class="absolute inset-0 bg-gray-100 rounded-md overflow-hidden shadow flex items-center justify-center">
                 @if ($type === 'image')
