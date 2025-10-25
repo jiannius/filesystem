@@ -100,7 +100,7 @@ class File extends Model
     protected static function booted() : void
     {
         static::saving(function ($file) {
-            if ($file->isDirty('data')) $file->setVisibility();
+            if ($file->isDirty('visibility')) $file->setVisibility();
         });
 
         static::deleting(function ($file) {
@@ -283,6 +283,9 @@ class File extends Model
         $query->where('name', 'like', "%$search%");
     }
 
+    /**
+     * The scope for mime
+     */
     public function scopeMime($query, $mime) : void
     {
         if (!$mime) return;
@@ -306,16 +309,25 @@ class File extends Model
         });
     }
 
+    /**
+     * Check whether the file can be retrieved
+     */
     public function auth() : bool
     {
         return true;
     }
 
+    /**
+     * Check whether the visibility of the file can be edited
+     */
     public function isVisibilityEditable() : bool
     {
         return true;
     }
 
+    /**
+     * Get the endpoint of the file
+     */
     public function getEndpoint($noauth = false, $optimized = false)
     {
         if ($this->is_youtube) return Util::getYoutubeEmbedUrl($this->url);
@@ -337,6 +349,9 @@ class File extends Model
         return $endpoint;
     }
 
+    /**
+     * Get the base64 of the file
+     */
     public function getBase64($noauth = false, $optimized = false)
     {
         $endpoint = $this->getEndpoint($noauth, $optimized);
@@ -349,6 +364,9 @@ class File extends Model
         return 'data:image/'.$ext.';base64,'.base64_encode($content);
     }
 
+    /**
+     * Get the optimized path of the file
+     */
     public function getOptimizedPath()
     {
         if (!$this->is_resized && !$this->is_converted_to_webp) return $this->path;
@@ -361,16 +379,25 @@ class File extends Model
         return $split->push(self::OPTIMIZATION_SUFFIX)->join('').'.'.$extension;
     }
 
+    /**
+     * Get the disk of the file
+     */
     public function getDisk()
     {
         return Storage::disk($this->disk);
     }
 
+    /**
+     * Check whether the file is on the given disk
+     */
     public function isDisk(...$name)
     {
         return in_array($this->disk, (array) $name);
     }
 
+    /**
+     * Get the default store settings for the file
+     */
     public function getStoreSettings()
     {
         return [
@@ -380,6 +407,9 @@ class File extends Model
         ];
     }
 
+    /**
+     * Store the file
+     */
     public function store($content, $settings = [])
     {
         if (
@@ -395,6 +425,9 @@ class File extends Model
         }
     }
 
+    /**
+     * Store the youtube file
+     */
     public function storeYoutube($content)
     {
         if (!is_string($content)) return;
@@ -416,6 +449,9 @@ class File extends Model
         ])->save();
     }
 
+    /**
+     * Store the image url file
+     */
     public function storeImageUrl($content)
     {
         if (!is_string($content)) return;
@@ -433,6 +469,9 @@ class File extends Model
         ])->save();
     }
 
+    /**
+     * Store the uploaded file
+     */
     public function storeUploaded($content, $settings)
     {
         if (!$content->path()) return;
@@ -476,6 +515,9 @@ class File extends Model
         ])->save();
     }
 
+    /**
+     * Prevent the production delete of the file
+     */
     public function preventProductionDelete()
     {
         if (!$this->isDisk('do', 's3')) return;
@@ -488,6 +530,9 @@ class File extends Model
         );
     }
 
+    /**
+     * Delete the file from the disk
+     */
     public function deleteFromDisk()
     {
         if (!$this->path) return;
@@ -499,6 +544,9 @@ class File extends Model
         $this->getDisk()->delete($this->path);
     }
 
+    /**
+     * Set the visibility of the file
+     */
     public function setVisibility()
     {
         $visibility = $this->visibility ?? 'public';
@@ -510,6 +558,9 @@ class File extends Model
         }
     }
 
+    /**
+     * Optimize the file
+     */
     public function optimize($settings = [])
     {
         if (!$this->is_image) return $this;
