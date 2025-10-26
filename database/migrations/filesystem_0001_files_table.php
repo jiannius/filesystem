@@ -28,8 +28,6 @@ return new class extends Migration
             $table->string('visibility')->nullable();
             $table->string('env')->nullable();
             $table->json('data')->nullable();
-            $table->boolean('is_resized')->nullable();
-            $table->boolean('is_converted_to_webp')->nullable();
             $table->timestamps();
         });
     }
