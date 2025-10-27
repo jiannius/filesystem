@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Number;
+use League\Glide\ServerFactory;
 
 class File extends Model
 {
@@ -329,6 +330,19 @@ class File extends Model
     }
 
     /**
+     * Get the glide server of the file
+     * Using league/glide to alter image on the fly using the URL parameters
+     */
+    public function getGlideServer()
+    {
+        return ServerFactory::create([
+            'source' => $this->getDisk()->getDriver(),
+            'cache' => storage_path('app/glide-cache'),
+            'max_image_size' => 2000*2000,
+        ]);
+    }
+
+    /**
      * Get the disk of the file
      */
     public function getDisk()
@@ -462,6 +476,7 @@ class File extends Model
     public function deleteFromDisk()
     {
         if (!$this->path) return;
+        $this->getGlideServer()->deleteCache($this->path);
         $this->getDisk()->delete($this->path);
     }
 
