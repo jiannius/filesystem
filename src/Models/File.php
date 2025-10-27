@@ -337,7 +337,7 @@ class File extends Model
     {
         return ServerFactory::create([
             'source' => $this->getDisk()->getDriver(),
-            'cache' => storage_path('app/glide-cache'),
+            'cache' => storage_path('app/private/glide-cache'),
             'max_image_size' => 2000*2000,
         ]);
     }
@@ -415,7 +415,7 @@ class File extends Model
     /**
      * Store the uploaded file
      */
-    public static function storeUpload($upload, $path = '', $visibility = 'public')
+    public static function storeUpload($upload, $folder = '', $visibility = 'public')
     {
         if (!$upload->path()) return;
 
@@ -444,7 +444,7 @@ class File extends Model
         ]);
 
         $disk = $file->getDisk();
-        $folder = collect([data_get($disk->getConfig(), 'folder'), $path])->filter()->join('/');
+        $folder = collect([data_get($disk->getConfig(), 'folder'), $folder])->filter()->join('/');
 
         $path = $file->disk === 'local'
             ? $disk->putFileAs($folder, $upload->path(), $saveAs.'.'.$extension)
