@@ -436,7 +436,7 @@ class File extends Model
             'extension' => $extension,
             'kb' => $size,
             'mime' => $mime,
-            'disk' => env('FILESYSTEM_DISK'),
+            'disk' => config('filesystems.default'),
             'width' => $width,
             'height' => $height,
             'env' => app()->environment(),
