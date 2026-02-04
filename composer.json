@@ -2,7 +2,7 @@
     "name": "jiannius/filesystem",
     "description": "Jiannius Filesystem",
     "type": "library",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "require": {
         "doctrine/dbal": "^3.6",
         "intervention/image": "^3",

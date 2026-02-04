@@ -199,11 +199,11 @@ class File extends Model
     /**
      * The image url attribute for file
      */
-    public function getImageUrl($config = [])
+    public function getImageUrl($config = [], $valid = 7)
     {
         if (!$this->is_image) return;
 
-        return URL::temporarySignedRoute('__fs.image', now()->addDays(7), [
+        return URL::temporarySignedRoute('__fs.image', $valid ? now()->addDays($valid) : null, [
             'path' => $this->path,
             ...$config,
         ]);
