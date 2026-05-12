@@ -201,9 +201,13 @@ class File extends Model
     /**
      * The image url attribute for file
      */
-    public function getImageUrl($config = [], $valid = 7)
+    public function getImageUrl(array $config = [], ?int $valid = null)
     {
         if (!$this->is_image) return;
+
+        if ($valid === null) {
+            $valid = config('fs.image_url_default_ttl_days', 7);
+        }
 
         return URL::temporarySignedRoute('__fs.image', $valid ? now()->addDays($valid) : null, [
             'path' => $this->path,
@@ -337,10 +341,10 @@ class File extends Model
      */
     public function getGlideServer()
     {
-        return ServerFactory::create([
-            'source' => $this->getDisk()->getDriver(),
-            'cache' => storage_path('app/private/glide-cache'),
-            'max_image_size' => 2000*2000,
+        return \League\Glide\ServerFactory::create([
+            'source'         => $this->getDisk()->getDriver(),
+            'cache'          => config('fs.glide.cache_path', storage_path('app/private/glide-cache')),
+            'max_image_size' => config('fs.glide.max_image_size', 2000 * 2000),
         ]);
     }
 
@@ -460,9 +464,11 @@ class File extends Model
     /**
      * Prevent the production delete of the file
      */
-    public function preventProductionDelete()
+    public function preventProductionDelete(): void
     {
-        if (!$this->isDisk('do', 's3')) return;
+        $cloudDisks = config('fs.cloud_disks', ['s3', 'do']);
+
+        if (!in_array($this->disk, $cloudDisks)) return;
         if (!$this->path) return;
 
         throw_if(
