@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Number;
-use League\Glide\ServerFactory;
 
 class File extends Model
 {
@@ -190,7 +189,7 @@ class File extends Model
                 if ($url) return $url;
                 if (!$this->path) return;
                 if ($this->disk === 'local') return asset('storage/'.$this->path);
-                if (in_array($this->disk, ['do', 's3'])) {
+                if (in_array($this->disk, config('fs.cloud_disks', ['s3', 'do']))) {
                     if ($this->visibility === 'private') return $this->getDisk()->temporaryUrl($this->path, now()->addHour());
                     else return $this->getDisk()->url($this->path);
                 }

@@ -10,27 +10,6 @@ abstract class TestCase extends Orchestra
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        // The package's controllers currently extend `App\Http\Controllers\Controller`
-        // and reference `App\Models\File`/`App\Models\User`, which don't exist in the
-        // Testbench environment. Alias them so route registration during boot succeeds.
-        // These references will be cleaned up in subsequent refactor tasks.
-        if (!class_exists(\App\Http\Controllers\Controller::class, false)) {
-            class_alias(\Illuminate\Routing\Controller::class, \App\Http\Controllers\Controller::class);
-        }
-
-        if (!class_exists(\App\Models\File::class, false)) {
-            class_alias(\Jiannius\Filesystem\Models\File::class, \App\Models\File::class);
-        }
-
-        if (!class_exists(\App\Models\User::class, false)) {
-            class_alias(\Illuminate\Foundation\Auth\User::class, \App\Models\User::class);
-        }
-
-        parent::setUp();
-    }
-
     protected function getPackageProviders($app): array
     {
         return [FilesystemServiceProvider::class];
