@@ -2,21 +2,19 @@
 
 namespace Jiannius\Filesystem\Controllers;
 
-use App\Models\File;
-use App\Http\Controllers\Controller;
-
-class ImageController extends Controller
+class ImageController
 {
     public function __invoke()
     {
+        $fileClass = config('fs.models.file');
         $path = request()->path;
 
-        $file = File::query()
+        $file = $fileClass::query()
             ->withMime('image/*')
             ->where('path', $path)
             ->firstOrFail();
 
-        if (!$file->auth()) return abort(403);
+        if (!$file->auth()) abort(403);
 
         return $file->getGlideServer()->outputImage($path, request()->except(['expires', 'signature']));
     }

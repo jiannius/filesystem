@@ -2,10 +2,7 @@
 
 namespace Jiannius\Filesystem\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\File;
-
-class UploadController extends Controller
+class UploadController
 {
     public function __invoke()
     {
@@ -15,25 +12,31 @@ class UploadController extends Controller
         );
     }
 
-    public function saveUrls()
+    protected function saveUrls()
     {
         $urls = request()->url;
 
         if (!$urls) return;
 
+        $fileClass = config('fs.models.file');
+
         return collect($urls)
             ->filter()
-            ->map(fn ($url) => app(File::class)->store($url))
+            ->map(fn ($url) => $fileClass::store(url: $url))
             ->values()
             ->all();
     }
 
-    public function saveUploads()
+    protected function saveUploads()
     {
         $upload = request()->file;
         $settings = request()->settings ?? [];
 
-        $file = app(File::class)->store($upload, $settings);
+        $fileClass = config('fs.models.file');
+        $folder = data_get($settings, 'folder', '');
+        $visibility = data_get($settings, 'visibility', 'public');
+
+        $file = $fileClass::storeUpload($upload, $folder, $visibility);
 
         return $file->toArray();
     }
