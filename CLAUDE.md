@@ -14,19 +14,27 @@ The Laravel service provider is auto-registered via `composer.json`'s `extra.lar
 composer install            # install dependencies
 composer update             # bump composer.lock
 composer dump-autoload      # regenerate PSR-4 autoload after adding classes
+composer test                                       # run the Orchestra Testbench feature suite
+vendor/bin/phpunit tests/Feature/UploadTest.php     # run a single test file
 ```
 
-There are no lint, format, or test scripts wired up. `orchestra/testbench` is installed as a dev dep but no tests exist yet — don't claim tests "pass" without first wiring up a test runner.
+The Orchestra Testbench feature suite is wired up under `tests/` and runnable via `composer test` (or `vendor/bin/phpunit` directly). No lint or format scripts are configured.
 
 When bumping the package version, update **both** `composer.json` `version` and commit with a `Bump version to X.Y.Z` message (matches existing history, e.g. `9559b54`).
 
 ## Architecture
 
-### Consumer-extension pattern (important)
+### Config-driven bindings (1.0+)
 
-`src/Controllers/UploadController.php` and `src/Controllers/ImageController.php` import `App\Models\File` and `App\Http\Controllers\Controller` — **classes from the consuming application, not from this package**. The package ships `Jiannius\Filesystem\Models\File` as a base; consumers are expected to create their own `App\Models\File` that extends it (and to have a base `App\Http\Controllers\Controller`). If you edit a controller and "class not found" errors appear in isolation, that's expected — the package only resolves inside a host Laravel app.
+The package owns its own `Jiannius\Filesystem\Models\File`. Controllers and the model itself resolve dependent classes from `config('fs.*')` rather than hardcoding host-app classes:
 
-`File::user()` similarly belongs-to `\App\Models\User` from the host app.
+- `config('fs.models.file')` — defaults to the package's own `File`. Hosts that want to extend the model point this at their `App\Models\File extends Jiannius\Filesystem\Models\File`.
+- `config('fs.models.user')` — null by default; falls back to `config('auth.providers.users.model')`. Controls the target of `File::user()`.
+- `config('fs.routes.*')` — toggle/rename the package's two routes if you want to register your own.
+- `config('fs.glide.*')` — Glide cache path and max image size.
+- `config('fs.cloud_disks')` — disks subject to the production-delete guard.
+
+Pre-1.0 versions (`0.2.x` and earlier) hardcoded `App\Models\File`, `App\Models\User`, and `App\Http\Controllers\Controller` references inside the package. Those required the host app to scaffold matching classes. The 1.0 config pattern replaces all of that.
 
 ### Routes (registered on `web` middleware)
 

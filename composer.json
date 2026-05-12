@@ -2,7 +2,7 @@
     "name": "jiannius/filesystem",
     "description": "Jiannius Filesystem",
     "type": "library",
-    "version": "0.2.5",
+    "version": "1.0.0",
     "require": {
         "php": "^8.3",
         "illuminate/support": "^13.0",
