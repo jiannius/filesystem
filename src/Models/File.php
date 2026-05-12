@@ -105,7 +105,9 @@ class File extends Model
      */
     public function user() : BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class);
+        $model = config('fs.models.user') ?? config('auth.providers.users.model');
+
+        return $this->belongsTo($model);
     }
 
     /**

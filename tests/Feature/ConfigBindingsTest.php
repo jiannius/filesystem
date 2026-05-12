@@ -28,4 +28,24 @@ class ConfigBindingsTest extends TestCase
     {
         $this->assertSame(['s3', 'do'], config('fs.cloud_disks'));
     }
+
+    public function test_user_relation_uses_auth_provider_model_when_config_is_null(): void
+    {
+        config(['auth.providers.users.model' => \Illuminate\Notifications\DatabaseNotification::class]);
+
+        $file = new \Jiannius\Filesystem\Models\File();
+        $relation = $file->user();
+
+        $this->assertSame(\Illuminate\Notifications\DatabaseNotification::class, $relation->getRelated()::class);
+    }
+
+    public function test_user_relation_uses_fs_models_user_when_set(): void
+    {
+        config(['fs.models.user' => \Illuminate\Notifications\DatabaseNotification::class]);
+
+        $file = new \Jiannius\Filesystem\Models\File();
+        $relation = $file->user();
+
+        $this->assertSame(\Illuminate\Notifications\DatabaseNotification::class, $relation->getRelated()::class);
+    }
 }
