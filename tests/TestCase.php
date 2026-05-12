@@ -24,6 +24,10 @@ abstract class TestCase extends Orchestra
             class_alias(\Jiannius\Filesystem\Models\File::class, \App\Models\File::class);
         }
 
+        if (!class_exists(\App\Models\User::class, false)) {
+            class_alias(\Illuminate\Foundation\Auth\User::class, \App\Models\User::class);
+        }
+
         parent::setUp();
     }
 
