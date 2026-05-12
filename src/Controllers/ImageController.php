@@ -34,8 +34,6 @@ class ImageController
         }, 200, [
             'Content-Type'   => $cache->mimeType($cachedPath),
             'Content-Length' => (string) $cache->fileSize($cachedPath),
-            'Cache-Control'  => 'max-age=31536000, public',
-            'Expires'        => date_create('+1 years')->format('D, d M Y H:i:s').' GMT',
         ]);
     }
 }
