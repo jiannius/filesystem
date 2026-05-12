@@ -4,14 +4,14 @@
     "type": "library",
     "version": "0.2.5",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "illuminate/support": "^13.0",
         "illuminate/database": "^13.0",
         "illuminate/http": "^13.0",
         "illuminate/routing": "^13.0",
         "league/flysystem-aws-s3-v3": "^3.0",
         "league/glide": "^3.0",
-        "symfony/http-client": "^6.0 | ^7.0"
+        "symfony/http-client": "^6.0 || ^7.0"
     },
     "require-dev": {
         "orchestra/testbench": "^11.0",
