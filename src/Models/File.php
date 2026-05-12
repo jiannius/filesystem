@@ -330,7 +330,9 @@ class File extends Model
         if (!$this->is_image) return;
 
         $ext = pathinfo(parse_url($this->url, PHP_URL_PATH), PATHINFO_EXTENSION);
-        $content = file_get_contents($this->url);
+        $content = rescue(fn () => \Illuminate\Support\Facades\Http::timeout(10)->get($this->url)->throw()->body());
+
+        if ($content === null) return;
 
         return 'data:image/'.$ext.';base64,'.base64_encode($content);
     }
@@ -385,17 +387,22 @@ class File extends Model
 
         if (!$vid) return;
 
-        $info = rescue(fn () => json_decode(file_get_contents('https://noembed.com/embed?dataType=json&url='.$url), true));
+        $info = rescue(fn () => \Illuminate\Support\Facades\Http::timeout(5)
+            ->get('https://noembed.com/embed', ['dataType' => 'json', 'url' => $url])
+            ->throw()
+            ->json()
+        );
+
         $embed = 'https://www.youtube.com/embed/'.$vid;
 
         return self::create([
             'name' => data_get($info, 'title') ?? $vid,
             'mime' => 'youtube',
-            'url' => $url,
+            'url'  => $url,
             'data' => [
-                'vid' => $vid,
+                'vid'       => $vid,
                 'thumbnail' => data_get($info, 'thumbnail_url'),
-                'embed' => $embed,
+                'embed'     => $embed,
             ],
         ]);
     }
@@ -405,16 +412,24 @@ class File extends Model
      */
     public static function storeImageUrl(string $url)
     {
-        $img = rescue(fn () => getimagesize($url));
+        $info = rescue(function () use ($url) {
+            $body = \Illuminate\Support\Facades\Http::timeout(5)->get($url)->throw()->body();
 
-        if (!$img) return;
+            $tmp = tmpfile();
+            $meta = stream_get_meta_data($tmp);
+            file_put_contents($meta['uri'], $body);
+
+            return getimagesize($meta['uri']);
+        });
+
+        if (!$info) return;
 
         return self::create([
-            'name' => $url,
-            'mime' => data_get($img, 'mime'),
-            'url' => $url,
-            'width' => data_get($img, 0),
-            'height' => data_get($img, 1),
+            'name'   => $url,
+            'mime'   => data_get($info, 'mime'),
+            'url'    => $url,
+            'width'  => data_get($info, 0),
+            'height' => data_get($info, 1),
         ]);
     }
 
