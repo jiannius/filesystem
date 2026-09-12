@@ -58,4 +58,32 @@ class ImageRouteTest extends TestCase
         $expectedExpiry = now()->addDays(14)->timestamp;
         $this->assertEqualsWithDelta($expectedExpiry, (int) $params['expires'], 60);
     }
+
+    /**
+     * A row whose blob is gone must 404, not 500.
+     *
+     * Glide throws FileNotFoundException when the source is missing, and letting it bubble
+     * turned every thumbnail of a deleted blob into a 500 plus a logged exception. A
+     * listing of many such rows produced a burst of them. Sibling of the 403 case above.
+     */
+    public function test_missing_blob_returns_not_found_rather_than_a_server_error(): void
+    {
+        Storage::fake('local');
+
+        // The row exists and is authorised; only the bytes are gone.
+        $file = File::create([
+            'name'   => 'gone.jpg',
+            'mime'   => 'image/jpeg',
+            'disk'   => 'local',
+            'path'   => 'test/gone.jpg',
+            'width'  => 100,
+            'height' => 100,
+        ]);
+
+        $signedUrl = URL::temporarySignedRoute('__fs.image', now()->addMinutes(5), [
+            'path' => $file->path,
+        ]);
+
+        $this->get($signedUrl)->assertNotFound();
+    }
 }

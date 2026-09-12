@@ -2,6 +2,7 @@
 
 namespace Jiannius\Filesystem\Controllers;
 
+use League\Glide\Filesystem\FileNotFoundException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ImageController
@@ -19,7 +20,17 @@ class ImageController
         if (!$file->auth()) abort(403);
 
         $server = $file->getGlideServer();
-        $cachedPath = $server->makeImage($path, request()->except(['expires', 'signature']));
+
+        try {
+            $cachedPath = $server->makeImage($path, request()->except(['expires', 'signature']));
+        } catch (FileNotFoundException) {
+            // The row is here but the blob is not — deleted out from under it, or never
+            // copied into this environment. Glide throws, and letting that bubble made every
+            // thumbnail a 500 plus a logged exception, so a listing of such rows produced a
+            // burst of them. The file is genuinely absent, which is what 404 means.
+            abort(404);
+        }
+
         $cache = $server->getCache();
 
         return new StreamedResponse(function () use ($cache, $cachedPath) {
