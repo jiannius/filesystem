@@ -2,6 +2,12 @@
 
 All notable changes to `jiannius/filesystem`.
 
+## 1.0.1 — 2026-09-13
+
+### Fixed
+
+- **A missing blob now returns 404 instead of a 500.** Glide throws `FileNotFoundException` when the source image is gone — a blob deleted out from under its row, or never copied into an environment. `ImageController` let it bubble, so every such thumbnail became a 500 plus a logged exception, and a listing of many such rows produced a burst of them. The controller now catches it and aborts 404, which is what an absent file means. Sibling of the existing 403 case.
+
 ## 1.0.0 — 2026-05-12
 
 ### Breaking
