@@ -2,6 +2,14 @@
 
 All notable changes to `jiannius/filesystem`.
 
+## 1.0.2 — 2026-11-02
+
+### Changed
+
+- **Image URLs are stable and browser-cacheable.** `getImageUrl()` used to sign with `now()->addDays($valid)`, so the URL changed on every render and no browser could cache it. Every page view re-requested every thumbnail through PHP and Glide. The expiry is now rounded up to an epoch-aligned bucket of `$valid` days, so the URL is identical for every render inside a bucket. A URL now stays valid for between `$valid` and `2 × $valid` days: the default of 7 gives 7 to 14 days. `$valid = 0` (no expiry) is unchanged.
+- **`ImageController` sends cache headers.** A 200 now carries `Cache-Control: private, max-age=<seconds until the URL's expires>` (7 days when there's no expiry), an `ETag` (built from the path, the Glide params and the row's `updated_at`) and a `Last-Modified` (from `updated_at`).
+- **Conditional requests get a 304.** A matching `If-None-Match` or `If-Modified-Since` is answered with a 304 after `$file->auth()` and before Glide runs or the blob is read. A failed `auth()` is still a 403, and a missing blob is still a 404 on a full request.
+
 ## 1.0.1 — 2026-09-13
 
 ### Fixed
