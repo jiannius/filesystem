@@ -3,6 +3,7 @@
 namespace Jiannius\Filesystem\Controllers;
 
 use League\Glide\Filesystem\FileNotFoundException;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ImageController
@@ -19,10 +20,17 @@ class ImageController
 
         if (!$file->auth()) abort(403);
 
+        $params = request()->except(['expires', 'signature']);
+
+        // Conditional request: answer 304 before any Glide work or blob read.
+        $probe = $this->withCacheHeaders(new Response(), $file, $path, $params);
+
+        if ($probe->isNotModified(request())) return $probe;
+
         $server = $file->getGlideServer();
 
         try {
-            $cachedPath = $server->makeImage($path, request()->except(['expires', 'signature']));
+            $cachedPath = $server->makeImage($path, $params);
         } catch (FileNotFoundException) {
             // The row is here but the blob is not — deleted out from under it, or never
             // copied into this environment. Glide throws, and letting that bubble made every
@@ -33,7 +41,7 @@ class ImageController
 
         $cache = $server->getCache();
 
-        return new StreamedResponse(function () use ($cache, $cachedPath) {
+        $response = new StreamedResponse(function () use ($cache, $cachedPath) {
             $stream = $cache->readStream($cachedPath);
 
             if (0 !== ftell($stream)) {
@@ -46,5 +54,34 @@ class ImageController
             'Content-Type'   => $cache->mimeType($cachedPath),
             'Content-Length' => (string) $cache->fileSize($cachedPath),
         ]);
+
+        return $this->withCacheHeaders($response, $file, $path, $params);
+    }
+
+    /**
+     * Make the response browser-cacheable, for the browser only.
+     *
+     * The route is gated by $file->auth(), so the response is `private` — never stored by
+     * shared caches (an earlier public, year-long header was dropped for exactly that, and
+     * for outliving the signed URL). max-age stops at the URL's own `expires`, so a cached
+     * copy never outlives the signature. Headers go through the Response API rather than
+     * a raw array so Symfony's default `no-cache` does not clobber them on a stream.
+     */
+    protected function withCacheHeaders(Response $response, $file, string $path, array $params): Response
+    {
+        $expires = request()->query('expires');
+        $maxAge = is_numeric($expires) ? max(0, (int) $expires - now()->timestamp) : 7 * 86400;
+
+        $updatedAt = $file->updated_at;
+
+        ksort($params);
+
+        $response->setPrivate();
+        $response->setMaxAge($maxAge);
+        $response->setEtag(md5(implode('|', [$path, http_build_query($params), $updatedAt?->timestamp ?? 0])));
+
+        if ($updatedAt) $response->setLastModified($updatedAt);
+
+        return $response;
     }
 }

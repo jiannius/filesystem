@@ -55,7 +55,7 @@ return [
 The package registers two routes:
 
 - `POST /__fs/upload` — accepts a multipart `file` upload (and optional `settings`) or a `url[]` array. Behind `web` + `auth` middleware by default.
-- `GET /__fs/img/{path}` — serves Glide-transformed images. Requires a signed URL.
+- `GET /__fs/img/{path}` — serves Glide-transformed images. Requires a signed URL. Responses are browser-cacheable (see [Rendering image URLs](#rendering-image-urls)).
 
 Example upload from JavaScript:
 
@@ -88,7 +88,7 @@ $image = File::storeImageUrl('https://example.com/photo.jpg');
 ### Rendering image URLs
 
 ```php
-// Returns a signed URL valid for the configured TTL (default 7 days)
+// Returns a signed URL valid for the configured TTL (default 7 days, min.)
 $file->getImageUrl();
 
 // Custom TTL in days
@@ -100,6 +100,17 @@ $file->getImageUrl([], 0);
 // With Glide transformations
 $file->getImageUrl(['w' => 400, 'h' => 400, 'fit' => 'crop']);
 ```
+
+#### Stable, browser-cacheable URLs
+
+The expiry is rounded **up** to an epoch-aligned bucket of N days (N = the TTL), so the URL for a given file and transformation is identical on every render inside a bucket, and changes only when the next bucket starts. A URL is therefore valid for **between N and 2N days** (not exactly N). `$valid = 0` still produces a non-expiring URL.
+
+`GET /__fs/img/{path}` responses carry:
+
+- `Cache-Control: private, max-age=<seconds until the URL's expires>` — cached by the browser only (never shared caches, since access goes through `$file->auth()`), and never past the signature's expiry. A URL with no `expires` falls back to 7 days.
+- `ETag` (from the path, the transformation params and the row's `updated_at`) and `Last-Modified` (the row's `updated_at`).
+
+A conditional request (`If-None-Match` / `If-Modified-Since`) is answered with `304 Not Modified` after the `auth()` check but before any Glide work or blob read, so repeat views cost almost nothing. `auth()` is still evaluated on every request, so a 403 is never masked by a cached ETag.
 
 Glide transformation parameters (`w`, `h`, `fit`, `q`, `fm`, etc.) are passed straight through. See [Glide's API reference](https://glide.thephpleague.com/2.0/api/quick-reference/) for the full list.
 

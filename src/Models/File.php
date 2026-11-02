@@ -208,7 +208,19 @@ class File extends Model
             $valid = config('fs.image_url_default_ttl_days', 7);
         }
 
-        return URL::temporarySignedRoute('__fs.image', $valid ? now()->addDays($valid) : null, [
+        // Round the expiry up to an epoch-aligned bucket of $valid days, so every render
+        // inside a bucket yields the identical URL (browser-cacheable) instead of a new
+        // signature each time. The URL stays valid for between $valid and 2 x $valid days.
+        $expiration = null;
+
+        if ($valid) {
+            $span = $valid * 86400;
+            $expiration = \Illuminate\Support\Carbon::createFromTimestamp(
+                (int) (ceil((now()->timestamp + $span) / $span) * $span)
+            );
+        }
+
+        return URL::temporarySignedRoute('__fs.image', $expiration, [
             'path' => $this->path,
             ...$config,
         ]);
