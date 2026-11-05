@@ -188,11 +188,11 @@ class File extends Model
             get: function ($url) {
                 if ($url) return $url;
                 if (!$this->path) return;
-                if ($this->disk === 'local') return asset('storage/'.$this->path);
                 if (in_array($this->disk, config('fs.cloud_disks', ['s3', 'do']))) {
                     if ($this->visibility === 'private') return $this->getDisk()->temporaryUrl($this->path, now()->addHour());
                     else return $this->getDisk()->url($this->path);
                 }
+                if ($this->isLocalDriver()) return $this->getLocalUrl();
             },
         );
     }
@@ -208,22 +208,58 @@ class File extends Model
             $valid = config('fs.image_url_default_ttl_days', 7);
         }
 
-        // Round the expiry up to an epoch-aligned bucket of $valid days, so every render
-        // inside a bucket yields the identical URL (browser-cacheable) instead of a new
-        // signature each time. The URL stays valid for between $valid and 2 x $valid days.
-        $expiration = null;
-
-        if ($valid) {
-            $span = $valid * 86400;
-            $expiration = \Illuminate\Support\Carbon::createFromTimestamp(
-                (int) (ceil((now()->timestamp + $span) / $span) * $span)
-            );
-        }
-
-        return URL::temporarySignedRoute('__fs.image', $expiration, [
+        return URL::temporarySignedRoute('__fs.image', $this->bucketedExpiration($valid), [
             'path' => $this->path,
             ...$config,
         ]);
+    }
+
+    /**
+     * Round the expiry up to an epoch-aligned bucket of $days days, so every render
+     * inside a bucket yields the identical signed URL (browser-cacheable) instead of a
+     * new signature each time. The URL stays valid for between $days and 2 x $days days.
+     * Returns null (no expiry) when $days is falsy.
+     */
+    protected function bucketedExpiration(?int $days) : ?\Illuminate\Support\Carbon
+    {
+        if (!$days) return null;
+
+        $span = $days * 86400;
+
+        return \Illuminate\Support\Carbon::createFromTimestamp(
+            (int) (ceil((now()->timestamp + $span) / $span) * $span)
+        );
+    }
+
+    /**
+     * Whether the file's disk is a local-driver disk (checked by driver, not by name,
+     * so `local`, `public` or any custom local disk qualifies).
+     */
+    protected function isLocalDriver() : bool
+    {
+        return config("filesystems.disks.{$this->disk}.driver") === 'local';
+    }
+
+    /**
+     * Resolve the URL of a file on a local-driver disk from the disk itself.
+     *
+     * A disk that serves its own files (Laravel 11+ default `local`: root storage/app/private,
+     * `serve => true`) only answers signed requests, so we hand out a temporary URL. The expiry
+     * is bucketed (see bucketedExpiration) over `fs.image_url_default_ttl_days` (a falsy value
+     * falls back to 7), so the URL is stable and browser-cacheable within a bucket. Any other
+     * local disk, e.g. `public` symlinked to public/storage, uses its plain URL.
+     */
+    protected function getLocalUrl() : ?string
+    {
+        $disk = $this->getDisk();
+
+        if ($disk->providesTemporaryUrls()) {
+            $days = config('fs.image_url_default_ttl_days') ?: 7;
+
+            return $disk->temporaryUrl($this->path, $this->bucketedExpiration($days));
+        }
+
+        return $disk->url($this->path);
     }
 
     /**

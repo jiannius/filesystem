@@ -2,6 +2,12 @@
 
 All notable changes to `jiannius/filesystem`.
 
+## Unreleased
+
+### Fixed
+
+- **`File::url` for locally stored files no longer 403s on Laravel 11+.** It returned `asset('storage/'.$path)`, which is only right for a `public` disk symlinked to `public/storage`. The default `local` disk (root `storage/app/private`, `serve => true`) serves `/storage/*` through a route that only accepts signed URLs. The URL is now resolved from the disk: a disk that provides temporary URLs gets a signed one, bucketed over `fs.image_url_default_ttl_days` like image URLs (stable and browser-cacheable; a falsy value falls back to 7 days); any other `local`-driver disk, such as `public`, gets its plain `url()`, which previously returned null. The check is on the disk's driver, not its name. Cloud disks are unchanged.
+
 ## 1.0.2 — 2026-11-02
 
 ### Changed

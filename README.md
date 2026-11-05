@@ -127,7 +127,7 @@ Useful accessors on the `File` model:
 | `is_youtube`  | True if `mime === 'youtube'` |
 | `is_file`     | True if none of the above (generic document) |
 | `filename`    | The on-disk filename (last segment of `path`) |
-| `url`         | Public URL — resolves per-disk (local → `asset()`, cloud public → disk URL, cloud private → 1h temporary URL) |
+| `url`         | Public URL — resolves per-disk (local-driver disk that serves itself → signed URL, bucketed over `image_url_default_ttl_days`; other local-driver disk, e.g. `public` → its `url`; cloud public → disk URL; cloud private → 1h temporary URL) |
 | `type`        | Coarse type label: `image`, `video`, `audio`, `youtube`, `pdf`, `word`, `excel`, `ppt`, `text`, `svg`, `file` |
 | `icon`        | Inline SVG markup matching `type` |
 
