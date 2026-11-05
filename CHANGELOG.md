@@ -2,7 +2,7 @@
 
 All notable changes to `jiannius/filesystem`.
 
-## Unreleased
+## 1.0.3 — 2026-11-05
 
 ### Fixed
 
