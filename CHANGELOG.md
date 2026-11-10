@@ -2,6 +2,17 @@
 
 All notable changes to `jiannius/filesystem`.
 
+## 1.1.0 — 2026-11-10
+
+### Changed (behaviour change — read before upgrading)
+
+- **Server-side URL fetching is now opt-in through `fs.allow_url_fetch` (default `false`).** The upload route's `url[]` input and `File::storeImageUrl()` used to `Http::get()` any URL a logged-in user supplied. That is an SSRF vector: internal addresses and cloud metadata endpoints were reachable. With the new default, a `url[]` upload returns 422 (`url` validation error) and `storeImageUrl()` throws a `ValidationException`. Neither makes a request. **Apps that ingest image URLs must set `'allow_url_fetch' => true` in `config/fs.php`** (republish or add the key). YouTube ingestion is unaffected: it only calls noembed.com.
+- **`getBase64()` reads disk-backed files from the disk** instead of fetching the file's own URL over HTTP. Rows with no disk (URL-only images) are still fetched over HTTP, but only when `fs.allow_url_fetch` is on. Otherwise the method returns null.
+
+### Fixed
+
+- The static factories (`store`, `storeUpload`, `storeYoutube`, `storeImageUrl`) call `static::` instead of `self::`, which makes their subclass-awareness explicit. PHP already forwarded late static binding through `self::`, so `Subclass::storeUpload()` was already returning the subclass. New tests pin this for a subclass configured as `fs.models.file`, including its model hooks.
+
 ## 1.0.3 — 2026-11-05
 
 ### Fixed

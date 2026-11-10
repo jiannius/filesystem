@@ -74,4 +74,18 @@ return [
     */
     'image_url_default_ttl_days' => 7,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Server-side URL fetching
+    |--------------------------------------------------------------------------
+    |
+    | When true, the upload route's `url[]` input and File::storeImageUrl()
+    | download the given URL from the server. That lets any caller make your
+    | server request arbitrary addresses (SSRF: internal hosts, cloud
+    | metadata), so it is off by default. When false they throw a
+    | ValidationException (422 from the upload route) and fetch nothing.
+    |
+    */
+    'allow_url_fetch' => false,
+
 ];

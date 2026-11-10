@@ -19,6 +19,7 @@ class UploadController
         if (!$urls) return;
 
         $fileClass = config('fs.models.file');
+        $fileClass::ensureUrlFetchAllowed();
 
         return collect($urls)
             ->filter()

@@ -45,7 +45,13 @@ return [
     ],
     'cloud_disks'                => ['s3', 'do'],
     'image_url_default_ttl_days' => 7,
+    'allow_url_fetch'            => false,
 ];
+```
+
+`allow_url_fetch` controls whether the server downloads caller-supplied URLs (the upload route's `url[]` input, `File::storeImageUrl()`, and `getBase64()` on URL-only rows). It is off by default, because fetching arbitrary URLs from the server is an SSRF vector: internal hosts and cloud metadata endpoints become reachable. When it is off, `url[]` uploads get a 422 and `storeImageUrl()` throws a `ValidationException`. Turn it on only if you need it and trust the callers.
+
+```php
 ```
 
 ## Usage
@@ -81,7 +87,7 @@ $file = File::storeUpload($request->file('photo'), 'avatars', 'public');
 // From a YouTube URL — fetches title + thumbnail via noembed.com
 $video = File::storeYoutube('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 
-// From a remote image URL — downloads, captures dimensions
+// From a remote image URL — downloads, captures dimensions (requires fs.allow_url_fetch)
 $image = File::storeImageUrl('https://example.com/photo.jpg');
 ```
 

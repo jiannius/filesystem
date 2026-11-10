@@ -373,11 +373,18 @@ class File extends Model
      */
     public function getBase64()
     {
-        if (!$this->url) return;
         if (!$this->is_image) return;
 
-        $ext = pathinfo(parse_url($this->url, PHP_URL_PATH), PATHINFO_EXTENSION);
-        $content = rescue(fn () => \Illuminate\Support\Facades\Http::timeout(10)->get($this->url)->throw()->body());
+        if ($this->disk && $this->path) {
+            $ext = pathinfo($this->path, PATHINFO_EXTENSION);
+            $content = rescue(fn () => $this->getDisk()->get($this->path));
+        }
+        else {
+            if (!$this->url || !config('fs.allow_url_fetch', false)) return;
+
+            $ext = pathinfo(parse_url($this->url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION);
+            $content = rescue(fn () => \Illuminate\Support\Facades\Http::timeout(10)->get($this->url)->throw()->body());
+        }
 
         if ($content === null) return;
 
@@ -418,9 +425,9 @@ class File extends Model
      */
     public static function store($upload = null, $youtube = null, $url = null, $path = '', $visibility = 'public')
     {
-        if ($upload) return self::storeUpload($upload, $path, $visibility);
-        if ($youtube) return self::storeYoutube($youtube);
-        if ($url) return self::storeImageUrl($url);
+        if ($upload) return static::storeUpload($upload, $path, $visibility);
+        if ($youtube) return static::storeYoutube($youtube);
+        if ($url) return static::storeImageUrl($url);
     }
 
     /**
@@ -442,7 +449,7 @@ class File extends Model
 
         $embed = 'https://www.youtube.com/embed/'.$vid;
 
-        return self::create([
+        return static::create([
             'name' => data_get($info, 'title') ?? $vid,
             'mime' => 'youtube',
             'url'  => $url,
@@ -459,6 +466,8 @@ class File extends Model
      */
     public static function storeImageUrl(string $url)
     {
+        static::ensureUrlFetchAllowed();
+
         $info = rescue(function () use ($url) {
             $body = \Illuminate\Support\Facades\Http::timeout(5)->get($url)->throw()->body();
 
@@ -471,12 +480,26 @@ class File extends Model
 
         if (!$info) return;
 
-        return self::create([
+        return static::create([
             'name'   => $url,
             'mime'   => data_get($info, 'mime'),
             'url'    => $url,
             'width'  => data_get($info, 0),
             'height' => data_get($info, 1),
+        ]);
+    }
+
+    /**
+     * Refuse server-side fetching of caller-supplied URLs unless the host opted in.
+     * Fetching an arbitrary URL from the server is an SSRF vector (internal hosts,
+     * cloud metadata endpoints), so it is off by default.
+     */
+    public static function ensureUrlFetchAllowed() : void
+    {
+        if (config('fs.allow_url_fetch', false)) return;
+
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'url' => 'Fetching files from a URL is disabled.',
         ]);
     }
 
@@ -499,7 +522,7 @@ class File extends Model
         $height = data_get($dimension, 1);
         $saveAs = str()->random(30);
 
-        $file = self::create([
+        $file = static::create([
             'name' => $upload->getClientOriginalName(),
             'extension' => $extension,
             'kb' => $size,
