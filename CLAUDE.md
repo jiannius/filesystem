@@ -38,7 +38,7 @@ Pre-1.0 versions (`0.2.x` and earlier) hardcoded `App\Models\File`, `App\Models\
 
 ### Routes (registered on `web` middleware)
 
-- `POST /__fs/upload` → `UploadController` — requires `auth`. Accepts either `file` (uploaded file) + `settings`, or `url[]` (array of image URLs to ingest).
+- `POST /__fs/upload` → `UploadController` — requires `auth`. Accepts either `file` (uploaded file) or `url[]` (array of image URLs to ingest). Visibility, folder, extension allow-list, size limit and the optional authorize hook come from `config("fs.upload.*")`; client `settings` are ignored. The file check lives in `Support/UploadGuard`. Default middleware `auth` + `throttle:30,1`.
 - `GET /__fs/img/{path}` → `ImageController` — requires `signed` middleware. The `{path}` segment uses `where('path', '.*')` to allow slashes. Query params (besides `expires`/`signature`) are forwarded to Glide as image manipulation directives (`w`, `h`, `fit`, etc.).
 
 ### File model storage flow

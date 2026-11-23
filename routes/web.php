@@ -6,7 +6,7 @@ use Jiannius\Filesystem\Controllers\UploadController;
 
 $prefix = config('fs.routes.prefix', '__fs');
 $baseMiddleware = config('fs.routes.middleware', ['web']);
-$uploadMiddleware = array_merge($baseMiddleware, config('fs.routes.upload_middleware', ['auth']));
+$uploadMiddleware = array_merge($baseMiddleware, config('fs.routes.upload_middleware', ['auth', 'throttle:30,1']));
 
 Route::post($prefix.'/upload', UploadController::class)
     ->middleware($uploadMiddleware)

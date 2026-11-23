@@ -38,7 +38,7 @@ class UploadTest extends TestCase
         TestFileSubclass::$wasCalled = false;
 
         $this->postJson(route('__fs.upload'), [
-            'file' => UploadedFile::fake()->create('doc.pdf', 10),
+            'file' => UploadedFile::fake()->createWithContent('doc.pdf', "%PDF-1.4\n%%EOF\n"),
         ])->assertOk();
 
         $this->assertTrue(TestFileSubclass::$wasCalled, 'Configured file class was not used by controller');

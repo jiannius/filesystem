@@ -37,7 +37,14 @@ return [
         'enabled'           => true,
         'prefix'            => '__fs',
         'middleware'        => ['web'],
-        'upload_middleware' => ['auth'],
+        'upload_middleware' => ['auth', 'throttle:30,1'],
+    ],
+    'upload' => [
+        'visibility' => 'private',
+        'folder'     => '',
+        'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'csv', 'txt', 'xls', 'xlsx', 'doc', 'docx'],
+        'max_kb'     => 10240,
+        'authorize'  => null, // callable or invokable class name; return false to answer 403
     ],
     'glide' => [
         'cache_path'     => storage_path('app/private/glide-cache'),
@@ -60,7 +67,7 @@ return [
 
 The package registers two routes:
 
-- `POST /__fs/upload` — accepts a multipart `file` upload (and optional `settings`) or a `url[]` array. Behind `web` + `auth` middleware by default.
+- `POST /__fs/upload` — accepts a multipart `file` upload or a `url[]` array. Behind `web`, `auth` and `throttle:30,1` middleware by default (see [Upload policy](#upload-policy)).
 - `GET /__fs/img/{path}` — serves Glide-transformed images. Requires a signed URL. Responses are browser-cacheable (see [Rendering image URLs](#rendering-image-urls)).
 
 Example upload from JavaScript:
@@ -68,13 +75,26 @@ Example upload from JavaScript:
 ```js
 const fd = new FormData();
 fd.append('file', fileInput.files[0]);
-fd.append('settings[folder]', 'avatars');
-fd.append('settings[visibility]', 'public');
 
 await fetch('/__fs/upload', { method: 'POST', body: fd });
 ```
 
 The response is the JSON-serialized `File` record.
+
+#### Upload policy
+
+The server decides how an upload is stored. The route is configured under `fs.upload`:
+
+- **`visibility`** (default `private`) and **`folder`** (default empty) are applied to every upload. A `settings[visibility]` or `settings[folder]` sent by the client is ignored. Set `'visibility' => 'public'` if the route should keep storing public files.
+- **`extensions`** is the allow-list of file types, compared in lowercase and taken from the client file name. Anything else is answered with a 422.
+- **`max_kb`** (default `10240`) is the largest accepted file, in kilobytes. It only takes effect within PHP's own limits: `upload_max_filesize` and `post_max_size` also apply, and a request over those never reaches the route.
+- **Content check.** Images must be real images and PDFs must carry a PDF header within their first 1 KB. Regardless of the allow-list, a file whose detected type or leading content is HTML, XML, SVG, JavaScript or PHP is refused, so adding `svg` or `html` to `extensions` has no effect.
+- **`authorize`** is an optional callable (a closure, or an invokable class name resolved from the container) that receives the `Request`. Only a literal `false` denies the upload; a hook that returns `null` (for example by forgetting to `return`) allows it. It runs before anything is stored, for both `file` and `url[]` uploads. Prefer a class name if you run `config:cache`, since closures cannot be cached.
+- **Throttle.** `routes.upload_middleware` defaults to `['auth', 'throttle:30,1']`. This is only the default for apps without a published config. If your app has a published `config/fs.php`, it keeps its own `upload_middleware` value (for 1.x that is `['auth']`), so add `'throttle:30,1'` there yourself.
+- **Visibility.** `visibility` only has an effect on the cloud disks (`s3`, `do`), where it is passed to the disk and decides between a public URL and a temporary signed URL. On a local-driver disk it is recorded in the `visibility` column only: the file is written the same way, and `$file->url` is resolved from the disk (a signed URL when the disk supports temporary URLs, otherwise the disk's plain URL), not from the column.
+- **Serving uploads.** If you serve user uploads yourself, send `X-Content-Type-Options: nosniff` with them.
+
+The checks live in `Jiannius\Filesystem\Support\UploadGuard` and are applied by `UploadController` only. To change them, subclass the controller and override `uploadGuard()` or `uploadRules()`, then register your subclass as the route (see [Disabling the package routes](#disabling-the-package-routes)). `File::storeUpload()` is not restricted: code in your own app that calls it passes its own folder and visibility and is not subject to the allow-list.
 
 ### Programmatic storage
 
@@ -199,6 +219,10 @@ Then wire up `Jiannius\Filesystem\Controllers\UploadController` and `Jiannius\Fi
 ## Upgrading from 0.2.x
 
 See [CHANGELOG.md](CHANGELOG.md) for the 1.0.0 migration guide.
+
+## Upgrading to 2.0
+
+Uploads through `POST /__fs/upload` are now stored `private`, in the configured folder, and limited to an allow-list of file types. See the 2.0.0 entry in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

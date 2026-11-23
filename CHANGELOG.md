@@ -2,6 +2,30 @@
 
 All notable changes to `jiannius/filesystem`.
 
+## 2.0.0 — 2026-11-23
+
+### Changed (behaviour change — read before upgrading)
+
+- **The upload route decides visibility and folder on the server.** `POST /__fs/upload` stores files with `fs.upload.visibility` (default `private`) in `fs.upload.folder` (default: the disk root). The `settings[visibility]` and `settings[folder]` request fields are ignored. Previously the client chose both, and the visibility default was `public`.
+- **The upload route accepts only an allow-list of file types.** The extension (lowercase, from the client file name) must be in `fs.upload.extensions`, default `jpg, jpeg, png, gif, webp, pdf, csv, txt, xls, xlsx, doc, docx`, and the file must be at most `fs.upload.max_kb` kilobytes (default 10240). Failures are a 422 on the `file` field.
+- **The upload route checks file content.** Images must be real images and PDFs must carry a `%PDF-` header within their first 1 KB. Plain-text files (`csv`, `txt`) are inspected up to 1 MB; other formats are inspected over their first 4 KB. Files whose detected MIME type or leading content is HTML, XML, SVG, JavaScript or PHP are refused whatever the extension, even if you add that extension to `fs.upload.extensions`.
+- **The upload route is rate-limited by default.** `fs.routes.upload_middleware` now defaults to `['auth', 'throttle:30,1']`. Apps with a published `config/fs.php` do not pick this up; see Upgrading.
+- `File::storeUpload()`, `File::store()` and the rest of the model API are unchanged. The restrictions apply to the route only, so server-side callers keep their own folder and visibility arguments.
+
+### Added
+
+- `fs.upload.authorize`: an optional callable (closure or invokable class name) that receives the `Request` before anything is stored. Returning `false` answers 403; only a literal `false` denies, so a hook that returns `null` allows the upload. It applies to `file` and `url[]` uploads.
+- `Jiannius\Filesystem\Support\UploadGuard`, plus the overridable `uploadGuard()`, `uploadRules()`, `validateUpload()` and `authorizeUpload()` methods on `UploadController`, for hosts that need a different policy.
+
+### Upgrading
+
+1. Republish or edit `config/fs.php` to add the `upload` block (apps that never published the config get the defaults automatically).
+2. If your app relied on uploads being public, set `'upload' => ['visibility' => 'public']`, or switch to private files and serve them with `$file->url` / `getImageUrl()`. Previously stored files are not changed.
+3. If your front end sent `settings[folder]`, set `fs.upload.folder` instead. The server uses one folder for every upload through the route; for per-user or per-tenant folders, register your own route that calls `File::storeUpload($upload, $folder, $visibility)`.
+4. If you accept other file types, add their extensions to `fs.upload.extensions` and raise `max_kb` as needed. HTML, XML, SVG, JavaScript and PHP stay refused.
+5. **Add the throttle yourself if you have a published `config/fs.php`.** The new `['auth', 'throttle:30,1']` default only reaches apps without a published config: a published 1.x config keeps `'upload_middleware' => ['auth']`, and that value replaces the default, so the route stays unthrottled until you change it. Any host that sets `fs.routes.upload_middleware` should include `'throttle:30,1'` (or its own limit, for example `'throttle:120,1'`).
+6. If you serve user uploads yourself, send `X-Content-Type-Options: nosniff` with them.
+
 ## 1.1.0 — 2026-11-10
 
 ### Changed (behaviour change — read before upgrading)

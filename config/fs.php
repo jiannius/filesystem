@@ -26,14 +26,46 @@ return [
     | Set `enabled` to false to register your own routes instead of the
     | package defaults. `prefix` controls the URI prefix for both upload
     | and image routes. `middleware` applies to both routes;
-    | `upload_middleware` is appended to the upload route only.
+    | `upload_middleware` is appended to the upload route only; by default
+    | it requires authentication and rate-limits to 30 requests a minute.
     |
     */
     'routes' => [
         'enabled'           => true,
         'prefix'            => '__fs',
         'middleware'        => ['web'],
-        'upload_middleware' => ['auth'],
+        'upload_middleware' => ['auth', 'throttle:30,1'],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Upload route policy
+    |--------------------------------------------------------------------------
+    |
+    | These settings apply to POST /__fs/upload only. The server, not the
+    | client, decides where an upload goes: `visibility` and `folder` are
+    | used for every upload and any `settings[visibility]` / `settings[folder]`
+    | sent by the client is ignored. File::storeUpload() called from your own
+    | code is unaffected and keeps taking its own arguments.
+    |
+    | The route also accepts only the file types in `extensions` (compared
+    | in lowercase, taken from the client file name) up to `max_kb` kilobytes,
+    | and inspects the file content: images must be real images, PDFs must
+    | start with a PDF header, and anything that looks like HTML, XML, SVG,
+    | JavaScript or PHP is refused whatever its extension.
+    |
+    | `authorize` is an optional callable (closure or invokable class name,
+    | resolved through the container) that receives the Request. Returning
+    | false aborts the upload with a 403. Use a class name if you cache your
+    | config, because closures cannot be serialized.
+    |
+    */
+    'upload' => [
+        'visibility' => 'private',
+        'folder'     => '',
+        'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'csv', 'txt', 'xls', 'xlsx', 'doc', 'docx'],
+        'max_kb'     => 10240,
+        'authorize'  => null,
     ],
 
     /*
