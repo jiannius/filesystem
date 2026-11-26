@@ -68,6 +68,15 @@ When a file is deleted, both the disk file and the Glide cache for its path are 
 
 `preventProductionDelete()` (called from the `deleting` model event) throws if the file's stored `env` is `production` but the current app environment is not. This only applies to `do`/`s3` disks. Don't bypass this — it's there to stop dev/staging from wiping prod media.
 
+### Soft deletes (opt-in)
+
+The package's own `File` does not use `SoftDeletes`; behaviour is unchanged unless the host opts in. To enable, add `use Illuminate\Database\Eloquent\SoftDeletes;` / `use SoftDeletes;` to the host's `App\Models\File extends Jiannius\Filesystem\Models\File` (pointed at by `config('fs.models.file')`) and run migrations so `deleted_at` exists.
+
+- The `deleting` hook skips both the production guard and `deleteFromDisk()` when the model is soft deleting (`isSoftDeleting()`: it has `isForceDeleting()` and it is false). The stored object and Glide cache stay put, so `restore()` needs nothing special.
+- `forceDelete()` sets the force-deleting flag before `deleting` fires, so the same hook removes the object and Glide cache and the production-delete guard runs. Do not also hook `forceDeleting`/`forceDeleted` — that would delete twice.
+- `ImageController` queries through the model, so a trashed file 404s on `/__fs/img/...`.
+- `database/migrations/filesystem_0002_add_deleted_at_to_files_table.php` adds a nullable `deleted_at` only if the `files` table exists and the column does not (guarded `down()` too). Harmless for hosts that do not opt in.
+
 ### MIME constant
 
 `File::MIME` is a hand-curated extension→mime map used to override Laravel's content-sniffing during upload (because sniffing returns `.bin` for some files). Keep this in sync if you handle a new file type.

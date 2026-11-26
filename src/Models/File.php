@@ -92,13 +92,28 @@ class File extends Model
 
     /**
      * The booted method for model
+     *
+     * Soft deletes are opt-in: when the host's File model uses SoftDeletes, a soft delete
+     * keeps the stored object (and skips the production guard); only a force delete removes
+     * it. `deleting` fires for both, and Laravel marks the model as force deleting before it
+     * fires, so this one hook covers both cases.
      */
     protected static function booted() : void
     {
         static::deleting(function ($file) {
+            if ($file->isSoftDeleting()) return;
+
             $file->preventProductionDelete();
             $file->deleteFromDisk();
         });
+    }
+
+    /**
+     * Whether the delete in progress is a soft delete, which keeps the stored object
+     */
+    protected function isSoftDeleting() : bool
+    {
+        return method_exists($this, 'isForceDeleting') && !$this->isForceDeleting();
     }
 
     /**
