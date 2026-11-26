@@ -50,6 +50,8 @@ class File extends Model
         "bmp" => "image/bmp",
         "tif" => "image/tiff",
         "tiff" => "image/tiff",
+        "heic" => "image/heic",
+        "heif" => "image/heif",
         "ico" => "image/x-icon",
         "mp3" => "audio/mpeg",
         "ogg" => "audio/ogg",
@@ -399,6 +401,7 @@ class File extends Model
     {
         return \League\Glide\ServerFactory::create([
             'source'         => $this->getDisk()->getDriver(),
+            'driver'         => config('fs.glide.driver', 'gd'),
             'cache'          => config('fs.glide.cache_path', storage_path('app/private/glide-cache')),
             'max_image_size' => config('fs.glide.max_image_size', 2000 * 2000),
         ]);
@@ -514,7 +517,7 @@ class File extends Model
         // because laravel will auto detect the extension by examining the content mime
         // to avoid getting .bin, we extract the extension from the file name
         $extension = last(explode('.', str($upload->getClientOriginalName()))) ?? $upload->extension();
-        $mime = data_get(self::MIME, $extension) ?? $upload->getMimeType();
+        $mime = data_get(self::MIME, strtolower($extension)) ?? $upload->getMimeType();
         $size = round($upload->getSize()/1024, 5);
         $isImage = str($mime)->is('image/*');
         $dimension = $isImage ? rescue(fn () => getimagesize($upload->path())) : null;

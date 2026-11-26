@@ -2,6 +2,8 @@
 
 namespace Jiannius\Filesystem\Controllers;
 
+use Intervention\Image\Exceptions\DecoderException;
+use Intervention\Image\Exceptions\NotSupportedException;
 use League\Glide\Filesystem\FileNotFoundException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -37,6 +39,13 @@ class ImageController
             // thumbnail a 500 plus a logged exception, so a listing of such rows produced a
             // burst of them. The file is genuinely absent, which is what 404 means.
             abort(404);
+        } catch (DecoderException|NotSupportedException) {
+            // The blob is here but the configured Glide driver cannot read (or write) its
+            // format — GD cannot decode HEIC/HEIF, JPEG 2000, TIFF or SVG. Letting that bubble
+            // made every thumbnail of such a file a 500 plus a logged exception. The request
+            // is fine and the media is real, we just cannot transform it, so 415. It aborts
+            // before the cache headers are applied, so the error is never marked cacheable.
+            abort(415);
         }
 
         $cache = $server->getCache();

@@ -29,6 +29,19 @@ class UploadTest extends TestCase
         Storage::disk('local')->assertExists($file->path);
     }
 
+    public function test_uppercase_heic_extension_gets_the_heic_mime_but_keeps_its_extension(): void
+    {
+        Storage::fake('local');
+
+        $upload = UploadedFile::fake()->createWithContent('IMG_0001.HEIC', "\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic");
+
+        $file = File::storeUpload($upload, '', 'private');
+
+        $this->assertSame('image/heic', $file->mime);
+        $this->assertSame('HEIC', $file->extension);
+        $this->assertSame('image/heif', data_get(File::MIME, 'heif'));
+    }
+
     public function test_upload_route_uses_configured_file_model_class(): void
     {
         Storage::fake('local');

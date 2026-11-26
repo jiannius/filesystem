@@ -53,11 +53,14 @@ The `url` attribute accessor (`src/Models/File.php:184`) resolves differently pe
 
 ### Image URL signing + Glide
 
-`File::getImageUrl($config, $valid = 7)` returns a `URL::temporarySignedRoute('__fs.image', ...)` link valid for `$valid` days (or no expiry if `$valid` is falsy — see commit `a4eaf41`). Glide config is hardcoded in `getGlideServer()`:
+`File::getImageUrl($config, $valid = 7)` returns a `URL::temporarySignedRoute('__fs.image', ...)` link valid for `$valid` days (or no expiry if `$valid` is falsy — see commit `a4eaf41`). `getGlideServer()` builds the Glide server from:
 
-- cache dir: `storage_path('app/private/glide-cache')` (commit `72f0067` moved this)
-- `max_image_size`: `2000*2000`
+- cache dir: `config('fs.glide.cache_path')`, default `storage_path('app/private/glide-cache')` (commit `72f0067` moved this)
+- `max_image_size`: `config('fs.glide.max_image_size')`, default `2000*2000`
+- `driver`: `config('fs.glide.driver')`, default `gd`. GD cannot decode HEIC/HEIF, JPEG 2000, TIFF or SVG; hosts with Imagick + libheif can set `imagick`
 - source: the file's own disk driver
+
+`ImageController` answers 404 when the blob is missing (`FileNotFoundException`) and **415 Unsupported Media Type** when the driver cannot decode the image (`Intervention\Image\Exceptions\DecoderException` / `NotSupportedException`), instead of a 500 per thumbnail. Both abort before the cache headers are applied.
 
 When a file is deleted, both the disk file and the Glide cache for its path are removed (`deleteFromDisk()`).
 

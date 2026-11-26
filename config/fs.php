@@ -76,9 +76,14 @@ return [
     | `cache_path` is where Glide writes transformed image variants; it is
     | also purged when the source File model is deleted. `max_image_size`
     | caps the pixel dimensions Glide will process (width * height).
+    | `driver` is the image library Glide uses: 'gd' (default) or 'imagick'.
+    | GD cannot decode HEIC/HEIF, JPEG 2000, TIFF or SVG; set 'imagick' on
+    | hosts that have Imagick built with libheif. Undecodable images answer
+    | 415 either way.
     |
     */
     'glide' => [
+        'driver'         => 'gd',
         'cache_path'     => storage_path('app/private/glide-cache'),
         'max_image_size' => 2000 * 2000,
     ],

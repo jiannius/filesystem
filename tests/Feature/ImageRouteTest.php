@@ -110,6 +110,46 @@ class ImageRouteTest extends TestCase
         $this->get($signedUrl)->assertNotFound();
     }
 
+    /**
+     * A blob the Glide driver cannot decode must 415, not 500.
+     *
+     * GD cannot read HEIC/HEIF (among others); the row is an authorised image whose bytes
+     * exist, so the failure is Intervention's DecoderException. It used to bubble to a 500
+     * per thumbnail.
+     */
+    public function test_undecodable_blob_returns_unsupported_media_type_rather_than_a_server_error(): void
+    {
+        Storage::fake('local');
+
+        // A minimal HEIC-looking header followed by junk: not decodable by GD.
+        Storage::disk('local')->put('test/photo.HEIC', "\x00\x00\x00\x18ftypheic\x00\x00\x00\x00mif1heic".str_repeat("\x01\x02", 64));
+
+        $file = File::create([
+            'name'   => 'photo.HEIC',
+            'mime'   => 'image/heic',
+            'disk'   => 'local',
+            'path'   => 'test/photo.HEIC',
+        ]);
+
+        $response = $this->get($file->getImageUrl(['w' => 200, 'h' => 200, 'fit' => 'crop'], 7));
+
+        $response->assertStatus(415);
+        // The error must not carry the 200's browser-cache lifetime or validators.
+        $this->assertStringNotContainsString('max-age', (string) $response->headers->get('Cache-Control'));
+        $this->assertNull($response->headers->get('ETag'));
+    }
+
+    public function test_glide_driver_comes_from_config(): void
+    {
+        $file = $this->makeImageFile();
+
+        $this->assertInstanceOf(\Intervention\Image\Drivers\Gd\Driver::class, $file->getGlideServer()->getApi()->getImageManager()->driver());
+
+        config(['fs.glide.driver' => 'imagick']);
+
+        $this->assertInstanceOf(\Intervention\Image\Drivers\Imagick\Driver::class, $file->getGlideServer()->getApi()->getImageManager()->driver());
+    }
+
     protected function makeImageFile(array $attributes = []): File
     {
         Storage::fake('local');
